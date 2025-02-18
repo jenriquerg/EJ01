@@ -9,7 +9,7 @@ const app = express(); // Crear el servidor
 const PORT = 3000; // Puerto donde correrá el servidor
 const SECRET_KEY = 'aguacate'; // Clave secreta para firmar el token
 
-var serviceAccount = require("./key/serviceAccountKey.json"); // Credenciales de Firebase
+let serviceAccount = require("./key/serviceAccountKey.json"); // Credenciales de Firebase
 
 // Inicializar Firebase
 admin.initializeApp({
