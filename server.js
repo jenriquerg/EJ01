@@ -37,25 +37,28 @@ app.post('/register', async (req, res) => {
             intDataMessage: [{ message: "Todos los campos son obligatorios" }]
         });
     }
-    // Verificar que el rol sea 'master' o 'common_user'
     try {
-        const userRef = db.collection('users').doc(username);
-        const doc = await userRef.get();
-        // Verificar si el usuario ya existe
-        if (doc.exists) {
+        // Buscar si ya existe un usuario con el mismo username o email
+        const usersRef = db.collection('users');
+        const querySnapshot = await usersRef
+            .where('username', '==', username)
+            .orWhere('email', '==', email)
+            .get();
+    
+        if (!querySnapshot.empty) {
             return res.status(400).json({
                 statusCode: 400,
                 message: "Usuario ya existe",
-                intDataMessage: [{ message: "El usuario ya está registrado" }]
+                intDataMessage: [{ message: "El usuario o el correo ya están registrados" }]
             });
         }
-
+    
         // Encriptar la contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
         const timestamp = new Date();
-
+    
         // Guardar el usuario en Firestore
-        await userRef.set({
+        await usersRef.doc(username).set({
             email,
             username,
             password: hashedPassword,
@@ -63,13 +66,13 @@ app.post('/register', async (req, res) => {
             date_register: timestamp,
             last_login: ""
         });
-        // Enviar una respuesta exitosa
+    
         res.status(201).json({
             statusCode: 201,
             message: "Usuario registrado exitosamente",
             intDataMessage: [{ message: "Registro completado" }]
         });
-
+    
     } catch (error) {
         console.error(error);
         res.status(500).json({
