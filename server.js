@@ -37,7 +37,7 @@ app.post('/register', async (req, res) => {
             intDataMessage: [{ message: "Todos los campos son obligatorios" }]
         });
     }
-    // Verificar que el rol sea 'admin' o 'common'
+    // Verificar que el rol sea 'master' o 'common_user'
     try {
         const userRef = db.collection('users').doc(username);
         const doc = await userRef.get();
