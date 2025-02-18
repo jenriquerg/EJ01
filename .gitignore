@@ -37,3 +37,7 @@ temp/
 # Git archivos de fusión y backup
 *.swp
 *.swo
+
+# Firestore
+key/
+serviceAccountKey.json
