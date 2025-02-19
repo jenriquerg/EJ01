@@ -25,6 +25,34 @@ app.use(cors());
 // Middleware para parsear el cuerpo de la petición
 app.use(bodyParser.json());
 
+// Middleware para verificar el token Bearer
+const authenticateToken = (req, res, next) => {
+    // Verificar si la cabecera de autorización está presente
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+        return res.status(401).json({
+            statusCode: 401,
+            message: "No autorizado",
+            intDataMessage: [{ message: "Token no proporcionado o inválido" }]
+        });
+    }
+    // Extraer el token de la cabecera
+    const token = authHeader.split(' ')[1];
+    // Verificar el token
+    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(403).json({
+                statusCode: 403,
+                message: "Acceso denegado",
+                intDataMessage: [{ message: "Token inválido o expirado" }]
+            });
+        }
+        // Guardar los datos del usuario en el objeto req
+        req.user = decoded;
+        next();
+    });
+};
+
 // Ruta de registro
 app.post('/register', async (req, res) => {
     const { email, username, password, role } = req.body;
@@ -71,7 +99,35 @@ app.post('/register', async (req, res) => {
     }
 });
 
-
+// Aplicar middleware de autenticación a la ruta
+app.get('/users', authenticateToken, async (req, res) => {
+    const userPermissions = req.user.permissions ? req.user.permissions.split(', ') : [];
+    if (userPermissions.includes('get_users')) {
+    try {
+        const usersRef = db.collection('users');
+        const snapshot = await usersRef.get();
+        const users = snapshot.docs.map(doc => doc.data());
+        res.status(200).json({
+            statusCode: 200,
+            message: "OK",
+            intDataMessage: users
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            statusCode: 500,
+            message: "Error en el servidor",
+            intDataMessage: [{ message: "No se pudo obtener la lista de usuarios" }]
+        });
+    }
+    }else{
+        res.status(403).json({
+            statusCode: 403,
+            message: "Acceso denegado",
+            intDataMessage: [{ message: "No tienes permiso para acceder a esta ruta" }]
+        });
+    }
+});
 
 // Ruta de inicio de sesión
 app.post('/login', async (req, res) => {
@@ -104,7 +160,22 @@ app.post('/login', async (req, res) => {
             });
         }
         await userRef.update({ last_login: new Date() });
-        const token = jwt.sign({ username: userData.username, role: userData.role }, SECRET_KEY, { expiresIn: '1m' });
+
+        // Obtener los permisos del rol del usuario
+        const rolesRef = db.collection('roles').doc(userData.role);
+        const rolesDoc = await rolesRef.get();
+
+        if (!rolesDoc.exists) {
+            return res.status(500).json({
+                statusCode: 500,
+                message: "Error interno del servidor",
+                intDataMessage: [{ message: "El rol del usuario no existe en la base de datos" }]
+            });
+        }
+
+        const roleData = rolesDoc.data();
+
+        const token = jwt.sign({ username: userData.username, role: userData.role, permissions: roleData.permissions }, SECRET_KEY, { expiresIn: '1m' });
         res.status(200).json({
             statusCode: 200,
             message: "OK",
