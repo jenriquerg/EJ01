@@ -105,7 +105,7 @@ const login = async (req, res) => {
         permissions: roleData.permissions,
       },
       SECRET_KEY,
-      { expiresIn: "1m" }
+      { expiresIn: "8m" }
     );
     res.status(200).json({
       statusCode: 200,
