@@ -88,7 +88,7 @@ const deletePermission = async (req, res) => {
         }
 
         let { permissions } = doc.data();
-        if (!permissions || !permissions.includes(permission)) {
+        if (!permissions.includes(permission)) {
             return res.status(404).json({
                 statusCode: 404,
                 message: "Not Found",
